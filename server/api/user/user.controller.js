@@ -15,6 +15,12 @@ var validationError = function(res, err) {
   return res.json(422, err);
 };
 
+function isoDateToTime(isoDate){
+  var date = new Date(isoDate);
+  date.setHours(0,0,0,0);
+  return date.getTime();
+}
+
 /**
  * Get list of users
  */
@@ -218,15 +224,18 @@ exports.show = function (req, res, next) {
 
         profile.attendance = profile.attendance.filter(function(value){
             for (var i = 0;i < classYear.dates.length;i++){
-                if (classYear.dates[i].getTime() === value.getTime()){
+                if (isoDateToTime(classYear.dates[i]) === isoDateToTime(value)){
                     return true;
                 }
             }
             return false;
         });
-        profile.bonusAttendance = profile.bonusAttendance.filter(function(value){
+        profile.group_attendance = profile.attendance.filter(function(value){
+            
+        });
+        profile.bonusAttendance = profile.attendance.filter(function(value){
             for (var i = 0;i < classYear.bonusDates.length;i++){
-                if (classYear.bonusDates[i].getTime() === value.getTime()){
+                if (isoDateToTime(classYear.bonusDates[i]) === isoDateToTime(value)){
                     return true;
                 }
             }

@@ -24,9 +24,7 @@ var UserSchema = new Schema({
   projects: [{type : Schema.Types.ObjectId, ref: 'Project'}], // project id
   bio: {type:String},
   attendance: [Date],
-  bonusAttendance: [Date],
   unverifiedAttendance: [Date],
-  unverifiedBonusAttendance: [Date],
   semesterCount: Number,
   passwordResetToken: String,
   passwordResetExpiration: Date,
@@ -95,44 +93,32 @@ UserSchema
   .virtual('presence')
   .get(function(){
     var today = new Date();
-    today.setHours(0,0,0,0);
     var i = 0;
     for (i = 0;i < this.attendance.length;i++){
-      if (isoDateToTime(this.attendance[i]) === today.getTime()){
+      if (isoDateToTime(this.attendance[i]) === isoDateToTime(today)){
         return "present";
       }
     }
-    for (i = 0;i < this.bonusAttendance.length;i++){
-      if (isoDateToTime(this.bonusAttendance[i]) === today.getTime()){
-        return "presentBonus";
-      }
-    }
     for (i = 0;i < this.unverifiedAttendance.length;i++){
-      if (isoDateToTime(this.unverifiedAttendance[i]) === today.getTime()){
+      if (isoDateToTime(this.unverifiedAttendance[i]) === isoDateToTime(today)){
         return "unverified";
-      }
-    }
-    for (i = 0;i < this.unverifiedBonusAttendance.length;i++){
-      if (isoDateToTime(this.unverifiedBonusAttendance[i]) === today.getTime()){
-        return "unverifiedBonus";
       }
     }
     return "absent";
   })
-  .set(function(status){
+  .set(function({status, code}){
     var today = new Date();
-    today.setHours(0,0,0,0);
     var i = 0;
     if (status === "present"){
       // Make sure user is not unverified for today
       for (i = this.unverifiedAttendance.length-1;i >= 0;i--){
-        if (isoDateToTime(this.unverifiedAttendance[i]) === today.getTime()){
+        if (isoDateToTime(this.unverifiedAttendance[i]) === isoDateToTime(today)){
            this.unverifiedAttendance.splice(i,1);
         }
       }
       // If user already has attendance don't change anything
       for (i = 0;i < this.attendance.length;i++){
-        if (isoDateToTime(this.attendance[i]) === today.getTime()){
+        if (isoDateToTime(this.attendance[i]) === isoDateToTime(today)){
           return;
         }
       }
@@ -141,72 +127,39 @@ UserSchema
     else if (status === "unverified"){
       // If user already has attendance remove their attendance
       for (i = this.attendance.length-1;i >= 0;i--){
-        if (isoDateToTime(this.attendance[i]) === today.getTime()){
+        if (isoDateToTime(this.attendance[i]) === isoDateToTime(today)){
           this.attendance.splice(i,1);
         }
       }
 
       // See if user already is unverifed
       for (i = 0;i < this.unverifiedAttendance.length;i++){
-        if (isoDateToTime(this.unverifiedAttendance[i]) === today.getTime()){
+        if (isoDateToTime(this.unverifiedAttendance[i]) === isoDateToTime(today)){
           return;
         }
       }
 
       this.unverifiedAttendance.push(today);
     }
-    else if (status === "presentBonus"){
-      // Make sure user is not unverified for today
-      for (i = this.unverifiedBonusAttendance.length-1;i >= 0;i--){
-        if (isoDateToTime(this.unverifiedBonusAttendance[i]) === today.getTime()){
-           this.unverifiedBonusAttendance.splice(i,1);
-        }
-      }
-      // If user already has attendance don't change anything
-      for (i = 0;i < this.bonusAttendance.length;i++){
-        if (isoDateToTime(this.bonusAttendance[i]) === today.getTime()){
-          return;
-        }
-      }
-      this.bonusAttendance.push(today);
-    }
-    else if (status === "unverifiedBonus"){
-      // If user already has attendance remove their attendance
-      for (i = this.bonusAttendance.length-1;i >= 0;i--){
-        if (isoDateToTime(this.bonusAttendance[i]) === today.getTime()){
-          this.bonusAttendance.splice(i,1);
-        }
-      }
-
-      // See if user already is unverifed
-      for (i = 0;i < this.unverifiedBonusAttendance.length;i++){
-        if (isoDateToTime(this.unverifiedBonusAttendance[i]) === today.getTime()){
-          return;
-        }
-      }
-
-      this.unverifiedBonusAttendance.push(today);
-    }
-
     else if (status === "absent"){
       // Remove attendance from unverified and attendance
       for (i = this.attendance.length-1;i >= 0;i--){
-        if (isoDateToTime(this.attendance[i]) === today.getTime()){
+        if (isoDateToTime(this.attendance[i]) === isoDateToTime(today)){
           this.attendance.splice(i,1);
         }
       }
       for (i = this.unverifiedAttendance.length-1;i >= 0;i--){
-        if (isoDateToTime(this.unverifiedAttendance[i]) === today.getTime()){
+        if (isoDateToTime(this.unverifiedAttendance[i]) === isoDateToTime(today)){
            this.unverifiedAttendance.splice(i,1);
         }
       }
       for (i = this.bonusAttendance.length-1;i >= 0;i--){
-        if (isoDateToTime(this.bonusAttendance[i]) === today.getTime()){
+        if (isoDateToTime(this.bonusAttendance[i]) === isoDateToTime(today)){
           this.bonusAttendance.splice(i,1);
         }
       }
       for (i = this.unverifiedBonusAttendance.length-1;i >= 0;i--){
-        if (isoDateToTime(this.unverifiedBonusAttendance[i]) === today.getTime()){
+        if (isoDateToTime(this.unverifiedBonusAttendance[i]) === isoDateToTime(today)){
            this.unverifiedBonusAttendance.splice(i,1);
         }
       }
