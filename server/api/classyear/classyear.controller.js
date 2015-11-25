@@ -27,6 +27,20 @@ exports.getClassYear = function(req, res) {
   })
 };
 
+// Get a specific class year's attendance bonus days
+exports.countBonusDays = function(req, res) {
+  ClassYear.findOne({
+    "current": true
+  }, function (err, classYear){
+    if(err) { return handleError(res, err); }
+    if (!classYear) return res.send(404);
+    res.json(classYear.dayCodes.reduce(function(previousValue, currentValue, index, array) {
+      return previousValue + (currentValue.bonusDay? 1 : 0);
+    }, 0) );  })
+};
+
+
+
 // Creates new class year
 exports.create = function(req, res) {
   var semester = req.body.semester;

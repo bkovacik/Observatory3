@@ -208,8 +208,39 @@ exports.show = function (req, res, next) {
   User.findById(userId, function (err, user) {
     if (err) return next(err);
     if (!user) return res.send(404);
-    res.json(user.profile);
+var profile = user.profile;
+    ClassYear.findOne({
+        "current": true
+    }, function (err, classYear) {
+        if(err) { return res;}
+        profile.attendanceAll=profile.attendance;
+        profile.bonusAttendanceAll=profile.bonusAttendance;
+
+        profile.attendance = profile.attendance.filter(function(value){
+            for (var i = 0;i < classYear.dates.length;i++){
+                if (classYear.dates[i].getTime() === value.getTime()){
+                    return true;
+                }
+            }
+            return false;
+        });
+        profile.bonusAttendance = profile.bonusAttendance.filter(function(value){
+            for (var i = 0;i < classYear.bonusDates.length;i++){
+                if (classYear.bonusDates[i].getTime() === value.getTime()){
+                    return true;
+                }
+            }
+            return false;
+        });
+        profile.totalDays = classYear.days;
+        profile.dates = classYear.dates;
+        profile.bonusDates = classYear.bonusDates;
+
+        profile.totalBonusDays = classYear.bonusDays;
+        return res.json(profile);
+    });
   });
+};
 };
 
 /**
@@ -221,7 +252,7 @@ exports.avatar = function (req, res, next) {
   User.findById(userId, function (err, user) {
     if (err) return next(err);
     if (!user) return res.send(404);
-    res.json(user.avatar);
+    return res.json(user.avatar);
   });
 };
 
@@ -392,25 +423,35 @@ exports.attend = function(req,res){
       if (classYear.dayCode === code){
         var needsVerification = Math.random() < config.attendanceVerificationRatio ? true : false;
         if (!needsVerification){
-          user.presence = "present";
+         if (classYear.dayCodeInfo.bonusDay){
+               user.presence = "presentBonus";
+            }
+            else{
+                user.presence = "present";
+            }
         }else{
-          user.presence = "unverified";
+          if (classYear.dayCodeInfo.bonusDay){
+                user.presence = "unverifiedBonus";
+            }
+            else{
+                user.presence = "unverified";
+            }
         }
-        if (user.presence === "unverified"){
-          res.send(200, {"unverified": true});
-        }else if (user.presence === "present"){
-          res.send(200, {"unverified": false});
+        if (user.presence === "unverified" || user.presence === "unverifiedBonus"){
+            return res.send(200, {"unverified": true});
+        }
+        else if (user.presence === "present" || user.presence === "presentSmall" || user.presence === "presentBonus"){
+            return res.send(200, {"unverified": false});
         }
       }else{
           // Classyear attendance code was incorrect, try small group
           if (!user.smallgroup){
-              res.send(400, "Incorrect day code");
-              return;
+              return res.send(400, "Incorrect day code");
           }
           SmallGroup.findById(user.smallgroup, function(err, smallgroup){
               if (err) return res.send(500, err);
               if (code === smallgroup.dayCode){
-                  user.presence = "present";
+                  user.presence = "presentSmall";
                   res.send(200);
               }else{
                   res.send(400, "Incorrect day code");
@@ -431,9 +472,9 @@ exports.getUnverifiedAttendanceUsers = function(req,res){
 
     var unverifiedUsers = [];
     for (var i = 0;i < users.length;i++){
-      if (users[i].presence == "unverified"){
-        unverifiedUsers.push(users[i].profile);
-      }
+        if (users[i].presence === "unverified" || users[i].presence === "unverifiedBonus" || users[i].presence === "unverifiedSmall"){
+            unverifiedUsers.push(users[i].profile);
+        }
     }
     res.json(200,unverifiedUsers);
   });
@@ -449,6 +490,12 @@ exports.verifyAttendance = function(req,res){
     if (!user) return res.send(400, "No User with Id");
     if (user.presence === "unverified"){
       user.presence = "present";
+    }
+    else if(user.presence === "unverifiedBonus"){
+      user.presence = "presentBonus";
+    }
+    else if(user.presence === "unverifiedSmall"){
+      user.presence = "presentSmall";
     }
     res.send(200);
   });
