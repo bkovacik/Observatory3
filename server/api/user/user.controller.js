@@ -416,38 +416,42 @@ exports.attend = function(req,res){
     var user = req.user;
     var code = req.body.dayCode;
     if (!code) res.send(400, "No Code Submitted");
-    if (req.user.presence !== "absent") return res.send(400, "Attendance already recorded: " + req.user.presence);
     // Check code against current class year
     ClassYear.getCurrent(function(err, classYear){
       if (err) return res.send(500, err);
       if (classYear.dayCode === code){
         var needsVerification = Math.random() < config.attendanceVerificationRatio ? true : false;
-        if (!needsVerification){
-         if (classYear.dayCodeInfo.bonusDay){
-               user.presence = "presentBonus";
+            if (req.user.presence !== "absent") return res.send(400, "Attendance already recorded: " + req.user.presence);
+
+            if (classYear.dayCodeInfo.bonusDay){
+                if (req.user.presenceBonus !== "absentBonus") return res.send(400, "Attendance already recorded: " + req.user.presence);
+
+                if (!needsVerification){
+                    user.presence = "presentBonus";
+                }
+                else{
+                    user.presence = "unverifiedBonus";
+                }
+                return res.send(200, {"unverified": true});
             }
             else{
-                user.presence = "present";
+                if (req.user.presenceBonus !== "presentBonus") return res.send(400, "Attendance already recorded: " + req.user.presence);
+
+                if (!needsVerification){
+                    user.presence = "present";
+                }
+                else{
+                    user.presence = "unverified";
+                }
+                return res.send(200, {"unverified": false});
             }
-        }else{
-          if (classYear.dayCodeInfo.bonusDay){
-                user.presence = "unverifiedBonus";
-            }
-            else{
-                user.presence = "unverified";
-            }
-        }
-        if (user.presence === "unverified" || user.presence === "unverifiedBonus"){
-            return res.send(200, {"unverified": true});
-        }
-        else if (user.presence === "present" || user.presence === "presentSmall" || user.presence === "presentBonus"){
-            return res.send(200, {"unverified": false});
-        }
       }else{
           // Classyear attendance code was incorrect, try small group
           if (!user.smallgroup){
               return res.send(400, "Incorrect day code");
           }
+          if (req.user.presenceSmall !== "presentSmall") return res.send(400, "Attendance already recorded: " + req.user.presence);
+
           SmallGroup.findById(user.smallgroup, function(err, smallgroup){
               if (err) return res.send(500, err);
               if (code === smallgroup.dayCode){
@@ -472,7 +476,7 @@ exports.getUnverifiedAttendanceUsers = function(req,res){
 
     var unverifiedUsers = [];
     for (var i = 0;i < users.length;i++){
-        if (users[i].presence === "unverified" || users[i].presence === "unverifiedBonus" || users[i].presence === "unverifiedSmall"){
+        if (users[i].presence === "unverified" || users[i].presenceBonus === "unverifiedBonus" || users[i].presenceSmall === "unverifiedSmall"){
             unverifiedUsers.push(users[i].profile);
         }
     }
@@ -491,10 +495,10 @@ exports.verifyAttendance = function(req,res){
     if (user.presence === "unverified"){
       user.presence = "present";
     }
-    else if(user.presence === "unverifiedBonus"){
+    else if(user.presenceBonus === "unverifiedBonus"){
       user.presence = "presentBonus";
     }
-    else if(user.presence === "unverifiedSmall"){
+    else if(user.presenceSmall === "unverifiedSmall"){
       user.presence = "presentSmall";
     }
     res.send(200);

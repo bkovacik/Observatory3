@@ -115,7 +115,7 @@ UserSchema
                 if (this.attendanceByYear[i].year == classYear._id){
                     var thisYear = this.attendanceByYear[i];
                     for (var a = thisYear.verified.length-1; a>= 0 ; a--){
-                      if (isoDateToTime(thisYear.verified[a].date) === today.getTime()){
+                      if (isoDateToTime(thisYear.verified[a].date) === isoDateToTime(today)){
                         var thisDate = thisYear.verified[a];
                         if (!thisDate.bonusDay && !thisDate.smallgroup){
                             return 'present';
@@ -123,7 +123,7 @@ UserSchema
                       }
                     }
                     for (var a = thisYear.unverified.length-1; a>= 0 ; a--){
-                      if (isoDateToTime(thisYear.unverified[a].date) === today.getTime()){
+                      if (isoDateToTime(thisYear.unverified[a].date) === isoDateToTime(today)){
                         var thisDate = thisYear.unverified[a];
                         if (!thisDate.bonusDay && !thisDate.smallgroup){
                             return 'unverified';
@@ -151,7 +151,7 @@ UserSchema
                     if (status === 'present' || status === 'presentSmall' || status === 'presentBonus'){
                         // Check if user is unverified for today
                         for (var a = thisYear.unverified.length-1; a>= 0 ; a--){
-                          if (isoDateToTime(thisYear.unverified[a].date) === today.getTime()){
+                          if (isoDateToTime(thisYear.unverified[a].date) === isoDateToTime(today)){
                             var thisDate = thisYear.unverified[a];
                             var found = false;
                             if (status === 'present' && thisDate.bonus === false && thisDate.smallgroup === false){
@@ -173,7 +173,7 @@ UserSchema
                         }
                         // Check if user is already verified for today
                         for (var a = thisYear.verified.length-1; a>= 0 ; a--){
-                          if (isoDateToTime(thisYear.verified[a].date) === today.getTime()){
+                          if (isoDateToTime(thisYear.verified[a].date) === isoDateToTime(today)){
                             var thisDate = thisYear.verified[a];
                             var found = false;
                             if (status === 'present' && thisDate.bonus === false && thisDate.smallgroup === false){
@@ -217,7 +217,7 @@ UserSchema
                     else if (status === 'unverified' || status === 'unverifiedBonus' || status === 'unverifiedSmall'){
                         // Check if user is verified for today
                         for (var a = thisYear.verified.length-1; a>= 0 ; a--){
-                          if (isoDateToTime(thisYear.verified[a].date) === today.getTime()){
+                          if (isoDateToTime(thisYear.verified[a].date) === isoDateToTime(today)){
                             var thisDate = thisYear.verified[a];
                             var found = false;
                             if (status === 'unverified' && thisDate.bonus === false && thisDate.smallgroup === false){
@@ -239,7 +239,7 @@ UserSchema
                         }
                         // Check if user is already unverified for today
                         for (var a = thisYear.unverified.length-1; a>= 0 ; a--){
-                          if (isoDateToTime(thisYear.unverified[a].date) === today.getTime()){
+                          if (isoDateToTime(thisYear.unverified[a].date) === isoDateToTime(today)){
                             var thisDate = thisYear.unverified[a];
                             var found = false;
                             if (status === 'unverified' && thisDate.bonus === false && thisDate.smallgroup === false){
@@ -283,7 +283,7 @@ UserSchema
                     else if (status === 'absent' || status === 'absentBonus' || status === 'absentSmall'){
                         // Check if user is verified for today
                         for (var a = thisYear.verified.length-1; a>= 0 ; a--){
-                          if (isoDateToTime(thisYear.verified[a].date) === today.getTime()){
+                          if (isoDateToTime(thisYear.verified[a].date) === isoDateToTime(today)){
                             var thisDate = thisYear.verified[a];
                             var found = false;
                             if (status === 'unverified' && thisDate.bonus === false && thisDate.smallgroup === false){
@@ -302,7 +302,7 @@ UserSchema
                         }
                         // Check if user is unverified for today
                         for (var a = thisYear.unverified.length-1; a>= 0 ; a--){
-                          if (isoDateToTime(thisYear.unverified[a].date) === today.getTime()){
+                          if (isoDateToTime(thisYear.unverified[a].date) === isoDateToTime(today)){
                             var thisDate = thisYear.unverified[a];
                             var found = false;
                             if (status === 'present' && thisDate.bonus === false && thisDate.smallgroup === false){
@@ -338,7 +338,7 @@ UserSchema
                 if (this.attendanceByYear[i].year == classYear._id){
                     var thisYear = this.attendanceByYear[i];
                     for (var a = thisYear.verified.length-1; a>= 0 ; a--){
-                      if (isoDateToTime(thisYear.verified[a].date) === today.getTime()){
+                      if (isoDateToTime(thisYear.verified[a].date) === isoDateToTime(today)){
                         var thisDate = thisYear.verified[a];
 
                         if(thisDate.smallgroup){
@@ -348,7 +348,7 @@ UserSchema
                       }
                     }
                     for (var a = thisYear.unverified.length-1; a>= 0 ; a--){
-                      if (isoDateToTime(thisYear.unverified[a].date) === today.getTime()){
+                      if (isoDateToTime(thisYear.unverified[a].date) === isoDateToTime(today)){
                         var thisDate = thisYear.unverified[a];
 
                         if(thisDate.smallgroup){
@@ -386,7 +386,7 @@ UserSchema
                 if (this.attendanceByYear[i].year == classYear._id){
                     var thisYear = this.attendanceByYear[i];
                     for (var a = thisYear.verified.length-1; a>= 0 ; a--){
-                      if (isoDateToTime(thisYear.verified[a].date) === today.getTime()){
+                      if (isoDateToTime(thisYear.verified[a].date) === isoDateToTime(today)){
                         var thisDate = thisYear.verified[a];
 
                         if(thisDate.bonus){
@@ -396,7 +396,7 @@ UserSchema
                       }
                     }
                     for (var a = thisYear.unverified.length-1; a>= 0 ; a--){
-                      if (isoDateToTime(thisYear.unverified[a].date) === today.getTime()){
+                      if (isoDateToTime(thisYear.unverified[a].date) === isoDateToTime(today)){
                         var thisDate = thisYear.unverified[a];
 
                         if(thisDate.bonus){
@@ -419,7 +419,7 @@ UserSchema
             return;
         }
         this.presence = status;
-        
+
     };
 
 // Public profile information
