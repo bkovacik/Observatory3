@@ -13,7 +13,18 @@ angular.module('observatory3App')
 
       $http.get('/api/users/' + $stateParams.id).success(function(user){
           $scope.user = user;
+            console.log(user);
+
           $scope.originalRole = user.role;
+          $scope.user.attendanceDays = user.attendance.length + user.smallAttendance.length;
+          $scope.user.attendanceBonus = user.bonusAttendance.length;
+
+          $scope.user.totalAttendance = $scope.user.attendanceDays + user.bonusAttendance.length;
+
+          $scope.user.allDays = user.dates.length + user.smallDates.length;
+
+          $scope.goodWidth = $scope.user.totalAttendance / $scope.user.allDays ;
+
           $http.get('/api/commits/user/' + user.githubProfile).success(function(commits){
               $scope.user.commits = commits;
           });
@@ -22,14 +33,7 @@ angular.module('observatory3App')
           user.projects.forEach(function(projectId){
             $http.get("/api/projects/" + projectId).success(function(project){
               $scope.projects.push(project);
-              $scope.user.badDays = user.dates.filter(function(value){
-                 for (var i = 0;i < user.attendance.length;i++){
-                     if (new Date(user.attendance[i]).getTime() === new Date(value).getTime()){
-                         return true;
-                     }
-                 }
-                 return false;
-             });
+
              $http.get('/api/commits/user/' + user.githubProfile).success(function(commits){
                  $scope.user.commits = commits;
              });

@@ -35,7 +35,7 @@
         </div>
         </div>
         <div class='col-md-6'>
-        <div ng-show="!user.tech.length">User has not input any tags</div>
+        <div ng-show="!user.tech.length">No tags yet</div>
             <div class='tech-boxes'>
                 <div ng-repeat="tech in user.tech track by $index">
                     {{tech}}
@@ -46,7 +46,7 @@
                     <button ng-click="addTech()" class='btn btn-default btn-xs'>+</button>
                 </div>
             </div>
-            <div ng-show="!user.bio">User has not written a bio</div>
+            <div ng-show="!user.bio">Awesome RCOS developer!</div>
             <div ng-show='isuser || user.bio' class='content-box'>
                 <div class='content-title row'>
                     <div class='col-xs-6'>Bio</div>
@@ -79,17 +79,15 @@
         <div class='col-md-3'>
             <div ng-hide='!isuser' class='content-box'>
                 <div class='content-title'>
-                     Attendance <span class='attendance-score'>{{100* (user.attendance.length / user.totalDays)}}% + {{user.bonusAttendance.length}} bonus</span>
+                    Attendance <span class='attendance-score'>{{user.attendanceDays}}% +{{user.attendanceBonus}}%</span>
                 </div>
                 <div id='attendance-box-container'>
-                    <div ng-repeat='day in user.attendance' class='good'></div>
-                    <div ng-repeat='day in user.badDays' class='bad'></div>
-
+                    <div ng-style="{ 'width' : goodWidth}" class='good'></div>
                 </div>
             </div>
             <div class='content-box'>
                 <div class='content-title'>Commits</div>
-                <div ng-show="user.commits.length == 0">User has not committed anything yet</div>
+                <div ng-show="user.commits.length == 0">No commits yet...</div>
                 <div ng-repeat='event in user.github.events' class='commit'>
                     <a href='{{event.url}}'>{{event.message}}</a>
                 </div>

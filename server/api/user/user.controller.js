@@ -222,6 +222,7 @@ exports.show = function (req, res, next) {
     })
     .exec(function (err, classYear) {
         if(err) { return res;}
+        console.log(user.profile);
         profile.dates = classYear.dates;
         profile.bonusDates = classYear.bonusDates;
 
@@ -286,6 +287,11 @@ exports.show = function (req, res, next) {
             }
 
         }
+        else{
+            profile.smallDates = [];
+            profile.smallAttendance = [];
+        }
+        console.log(profile);
         return res.json(profile);
     });
   });

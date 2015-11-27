@@ -100,15 +100,13 @@
 .attendance-score{
     color:#888;
     float:right;
-    font-size: .75em;
-
 }
 
 #attendance-box-container{
 
     div{
         display:inline-block;
-        width:16px;
+        // width:16px;
         height:16px;
     }
     div.good{
