@@ -8,6 +8,22 @@ var Commit = require('../commit/commit.model');
 var ClassYear = require('../classyear/classyear.model');
 var Project = require('../project/project.model');
 
+var attendanceSchema = new Schema({
+
+    year: Schema.Types.ObjectId,
+    verified: [{
+        date:Date,
+        bonusDay:Boolean,
+        smallgroup:Boolean
+    }],
+    unverified: [{
+        date:Date,
+        bonusDay:Boolean,
+        smallgroup:Boolean
+    }]
+
+});
+
 var UserSchema = new Schema({
   name: String,
   email: { type: String, lowercase: true },
@@ -25,20 +41,7 @@ var UserSchema = new Schema({
   bio: {type:String},
   attendance: [Date],
   unverifiedAttendance: [Date],
-  attendanceByYear: [
-        {
-            year: Schema.Types.ObjectId,
-            verified: [{
-                date:Date,
-                bonusDay:Boolean,
-                smallgroup:Boolean
-            }],
-            unverified: [{
-                date:Date,
-                bonusDay:Boolean,
-                smallgroup:Boolean
-            }]
-      }],
+  attendanceByYear: [attendanceSchema ],
   semesterCount: Number,
   passwordResetToken: String,
   passwordResetExpiration: Date,
@@ -75,6 +78,7 @@ UserSchema
     return this._password;
   });
 
+
 /**
 * Get gravatar url
 *
@@ -108,50 +112,66 @@ UserSchema
     .get(function(){
         var today = new Date();
         today.setHours(0,0,0,0);
-        ClassYear.findOne({
-            'current': true
-        }, function(err, classYear){
-            for (var i = this.attendanceByYear.length-1; i>=0; i--){
-                if (this.attendanceByYear[i].year == classYear._id){
-                    var thisYear = this.attendanceByYear[i];
-                    for (var a = thisYear.verified.length-1; a>= 0 ; a--){
-                      if (isoDateToTime(thisYear.verified[a].date) === isoDateToTime(today)){
-                        var thisDate = thisYear.verified[a];
-                        if (!thisDate.bonusDay && !thisDate.smallgroup){
-                            return 'present';
-                        }
-                      }
-                    }
-                    for (var a = thisYear.unverified.length-1; a>= 0 ; a--){
-                      if (isoDateToTime(thisYear.unverified[a].date) === isoDateToTime(today)){
-                        var thisDate = thisYear.unverified[a];
-                        if (!thisDate.bonusDay && !thisDate.smallgroup){
-                            return 'unverified';
-                        }
-                      }
-                    }
-                    return 'absent';
-                }
-            }
+        var classYear = ClassYear.currentClassYear;
+        if (!'attendanceByYear' in this || this.attendanceByYear == undefined){
             return 'absent';
-        });
+        }
+        // console.log('this.attendanceByYear',this.attendanceByYear);
+
+        for (var i = this.attendanceByYear.length-1; i>=0; i--){
+            console.log("this.attendanceByYear[i].year.equals(classYear._id)",this.attendanceByYear[i].year.equals(classYear._id),this.attendanceByYear[i].year === classYear._id, this.attendanceByYear[i].year , classYear._id);
+            if (this.attendanceByYear[i].year.equals(classYear._id)){
+                console.log("Get Found year", this.attendanceByYear[i].year, this.attendanceByYear[i]);
+
+                var thisYear = this.attendanceByYear[i];
+                for (var a = thisYear.verified.length-1; a>= 0 ; a--){
+                  if (isoDateToTime(thisYear.verified[a].date) === isoDateToTime(today)){
+                    var thisDate = thisYear.verified[a];
+                    if (!thisDate.bonusDay && !thisDate.smallgroup){
+                        return 'present';
+                    }
+                  }
+                }
+                for (var a = thisYear.unverified.length-1; a>= 0 ; a--){
+                  if (isoDateToTime(thisYear.unverified[a].date) === isoDateToTime(today)){
+                    var thisDate = thisYear.unverified[a];
+                    if (!thisDate.bonusDay && !thisDate.smallgroup){
+                        return 'unverified';
+                    }
+                  }
+                }
+                return 'absent';
+            }
+        }
+        console.log("Get Added year", this.attendanceByYear);
+
+        return 'absent';
     })
     .set(function(status){
         var today = new Date();
-        today.setHours(0,0,0,0);
-
+        if (!'attendanceByYear' in this || this.attendanceByYear == undefined){
+            this.attendanceByYear = [];
+        }
         //New style attendence
-        ClassYear.findOne({
-            'current': true
-        }, function(err, classYear){
+        var classYear = ClassYear.currentClassYear;
             //Find the year
+            console.log("this",this);
+            var foundYear = false;
             for (var i = this.attendanceByYear.length-1; i>=0 ; i--){
-                if (this.attendanceByYear[i].year == classYear._id){
+                if (this.attendanceByYear[i].year.equals(classYear._id)){
+                    foundYear = true;
+                    console.log("Found year", this.attendanceByYear[i].year, this.attendanceByYear[i]);
                     var thisYear = this.attendanceByYear[i];
+                    console.log("Status: ", status);
+
                     if (status === 'present' || status === 'presentSmall' || status === 'presentBonus'){
+                    console.log("check Status present", thisYear);
+
                         // Check if user is unverified for today
                         for (var a = thisYear.unverified.length-1; a>= 0 ; a--){
                           if (isoDateToTime(thisYear.unverified[a].date) === isoDateToTime(today)){
+                              console.log("Found unverified", isoDateToTime(today));
+
                             var thisDate = thisYear.unverified[a];
                             var found = false;
                             if (status === 'present' && thisDate.bonus === false && thisDate.smallgroup === false){
@@ -166,14 +186,23 @@ UserSchema
                             if (found){
                                 thisYear.unverified[a].splice(a,1);
                                 thisYear.verified.push(thisDate);
-                                this.save();
+                                this.attendanceByYear[i]=thisYear;
+                                console.log("check save", thisYear);
+                                // this.attendanceByYear[i].verified.set()
+                                this.markModified("attendanceByYear");
+                                thisYear.save();
                                 return;
                             }
                           }
                         }
+
                         // Check if user is already verified for today
                         for (var a = thisYear.verified.length-1; a>= 0 ; a--){
+                            console.log("Search verified", thisYear.verified[a]);
+
                           if (isoDateToTime(thisYear.verified[a].date) === isoDateToTime(today)){
+                            console.log("Found verified", isoDateToTime(today));
+
                             var thisDate = thisYear.verified[a];
                             var found = false;
                             if (status === 'present' && thisDate.bonus === false && thisDate.smallgroup === false){
@@ -189,6 +218,7 @@ UserSchema
                                 return;
                             }
                           }
+
                         }
                         if (status === 'present'){
                             thisYear.verified.push({
@@ -211,6 +241,9 @@ UserSchema
                                 smallgroup:false
                             });
                         }
+                        console.log("check save2", thisYear);
+
+                        this.markModified("attendanceByYear");
                         this.save();
                         return;
                     }
@@ -232,7 +265,8 @@ UserSchema
                             if (found){
                                 thisYear.verified[a].splice(a,1);
                                 thisYear.unverified.push(thisDate);
-                                this.save();
+                                this.markModified("attendanceByYear");
+                                thisYear.save();
                                 return;
                             }
                           }
@@ -277,6 +311,7 @@ UserSchema
                                 smallgroup:false
                             });
                         }
+                        this.markModified("attendanceByYear");
                         this.save();
                         return;
                     }
@@ -319,23 +354,77 @@ UserSchema
                             }
                           }
                         }
-                        this.save();
+                        this.markModified("attendanceByYear");
+                        thisYear.save();
                         return;
                     }
                 }
             }
-        });
+            if (!foundYear){
+                var AttendanceModel = mongoose.model('Attendance', attendanceSchema)
+                var newYear = new AttendanceModel({
+                    year : classYear._id,
+                    verified : [],
+                    unverified: []
+                });
+                if (status === 'present'){
+                    newYear.verified.push({
+                        date:today,
+                        bonusDay:false,
+                        smallgroup:false
+                    });
+                }
+                else if (status === 'presentSmall'){
+                    newYear.verified.push({
+                        date:today,
+                        bonusDay:false,
+                        smallgroup:true
+                    });
+                }
+                else if (status === 'presentBonus'){
+                    newYear.verified.push({
+                        date:today,
+                        bonusDay:true,
+                        smallgroup:false
+                    });
+                }
+                if (status === 'unverified'){
+                    newYear.unverified.push({
+                        date:today,
+                        bonusDay:false,
+                        smallgroup:false
+                    });
+                }
+                else if (status === 'unverifiedSmall'){
+                    newYear.unverified.push({
+                        date:today,
+                        bonusDay:false,
+                        smallgroup:true
+                    });
+                }
+                else if (status === 'unverifiedBonus'){
+                    newYear.unverified.push({
+                        date:today,
+                        bonusDay:true,
+                        smallgroup:false
+                    });
+                }
+                this.attendanceByYear.push(newYear);
+                this.markModified("attendanceByYear");
+                this.save();
+            }
     });
 UserSchema
     .virtual('presenceSmall')
     .get(function(){
         var today = new Date();
         today.setHours(0,0,0,0);
-        ClassYear.findOne({
-            'current': true
-        }, function(err, classYear){
+        if (!'attendanceByYear' in this || this.attendanceByYear == undefined){
+            return 'absentSmall';
+        }
+        var classYear = ClassYear.currentClassYear;
             for (var i = this.attendanceByYear.length-1; i>=0; i--){
-                if (this.attendanceByYear[i].year == classYear._id){
+                if (this.attendanceByYear[i].year.equals(classYear._id)){
                     var thisYear = this.attendanceByYear[i];
                     for (var a = thisYear.verified.length-1; a>= 0 ; a--){
                       if (isoDateToTime(thisYear.verified[a].date) === isoDateToTime(today)){
@@ -359,7 +448,7 @@ UserSchema
                     }
                 }
             }
-        });
+            return 'absentSmall';
     })
     .set(function(status){
         if (status === 'unverified'){
@@ -372,18 +461,20 @@ UserSchema
         }
         this.presence = status;
 
-    };
+    });
 
 UserSchema
     .virtual('presenceBonus')
     .get(function(){
         var today = new Date();
         today.setHours(0,0,0,0);
-        ClassYear.findOne({
-            'current': true
-        }, function(err, classYear){
+        if (!'attendanceByYear' in this || this.attendanceByYear == undefined){
+            return 'absentBonus';
+        }
+
+        var classYear = ClassYear.currentClassYear;
             for (var i = this.attendanceByYear.length-1; i>=0; i--){
-                if (this.attendanceByYear[i].year == classYear._id){
+                if (this.attendanceByYear[i].year.equals(classYear._id)){
                     var thisYear = this.attendanceByYear[i];
                     for (var a = thisYear.verified.length-1; a>= 0 ; a--){
                       if (isoDateToTime(thisYear.verified[a].date) === isoDateToTime(today)){
@@ -407,7 +498,7 @@ UserSchema
                     }
                 }
             }
-        });
+            return 'absentBonus'
     })
     .set(function(status){
         if (status === 'unverified'){
@@ -420,7 +511,7 @@ UserSchema
         }
         this.presence = status;
 
-    };
+    });
 
 // Public profile information
 // TODO this is redundant with getFullProfile- can it be deleted?

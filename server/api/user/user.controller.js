@@ -10,6 +10,12 @@ var Commit = require('../commit/commit.model');
 var ClassYear = require('../classyear/classyear.model');
 var SmallGroup = require('../smallgroup/smallgroup.model');
 
+function isoDateToTime(isoDate){
+  var date = new Date(isoDate);
+  date.setHours(0,0,0,0);
+  return date.getTime();
+}
+
 
 var validationError = function(res, err) {
   return res.json(422, err);
@@ -213,8 +219,8 @@ var profile = user.profile;
         "current": true
     }, function (err, classYear) {
         if(err) { return res;}
-        profile.attendanceAll=profile.attendance;
-        profile.bonusAttendanceAll=profile.bonusAttendance;
+        profile.attendanceAll = profile.attendance;
+        profile.bonusAttendanceAll = profile.bonusAttendance;
 
         profile.attendance = profile.attendance.filter(function(value){
             for (var i = 0;i < classYear.dates.length;i++){
@@ -241,7 +247,7 @@ var profile = user.profile;
     });
   });
 };
-};
+
 
 /**
  * Get a single user's avatar
@@ -421,9 +427,9 @@ exports.attend = function(req,res){
       if (err) return res.send(500, err);
       if (classYear.dayCode === code){
         var needsVerification = Math.random() < config.attendanceVerificationRatio ? true : false;
-            if (req.user.presence !== "absent") return res.send(400, "Attendance already recorded: " + req.user.presence);
 
             if (classYear.dayCodeInfo.bonusDay){
+                console.log("Bonus", req.user.presenceBonus);
                 if (req.user.presenceBonus !== "absentBonus") return res.send(400, "Attendance already recorded: " + req.user.presence);
 
                 if (!needsVerification){
@@ -435,7 +441,8 @@ exports.attend = function(req,res){
                 return res.send(200, {"unverified": true});
             }
             else{
-                if (req.user.presenceBonus !== "presentBonus") return res.send(400, "Attendance already recorded: " + req.user.presence);
+                console.log("Normal", req.user.presence);
+                if (req.user.presence !== "absent") return res.send(400, "Attendance already recorded: " + req.user.presence);
 
                 if (!needsVerification){
                     user.presence = "present";
@@ -447,10 +454,12 @@ exports.attend = function(req,res){
             }
       }else{
           // Classyear attendance code was incorrect, try small group
+          console.log("Small", req.user.presenceSmall);
+
           if (!user.smallgroup){
               return res.send(400, "Incorrect day code");
           }
-          if (req.user.presenceSmall !== "presentSmall") return res.send(400, "Attendance already recorded: " + req.user.presence);
+          if (req.user.presenceSmall !== "absentSmall") return res.send(400, "Attendance already recorded: " + req.user.presence);
 
           SmallGroup.findById(user.smallgroup, function(err, smallgroup){
               if (err) return res.send(500, err);
