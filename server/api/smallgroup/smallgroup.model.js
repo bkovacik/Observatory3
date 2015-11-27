@@ -27,5 +27,14 @@ SmallGroupSchema
 		return null;
 	});
 
+SmallGroupSchema
+    .virtual("dates")
+	.get(function(){
+        var all = this.dayCodes.map(function(value) {
+            return value.date;
+        });
+		return all;
+	});
+
 var SmallGroup = mongoose.model('SmallGroup', SmallGroupSchema);
 module.exports = SmallGroup;

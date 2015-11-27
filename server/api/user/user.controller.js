@@ -211,38 +211,81 @@ exports.create = function (req, res, next) {
 exports.show = function (req, res, next) {
   var userId = req.params.id;
 
-  User.findById(userId, function (err, user) {
-    if (err) return next(err);
-    if (!user) return res.send(404);
-var profile = user.profile;
+  User.findById(userId)
+  .populate('smallgroup')
+  .exec(function (err, user) {
+    if (err) {return next(err);}
+    if (!user) {return res.send(404);}
+    var profile = user.profile;
     ClassYear.findOne({
         "current": true
-    }, function (err, classYear) {
+    })
+    .exec(function (err, classYear) {
         if(err) { return res;}
-        profile.attendanceAll = profile.attendance;
-        profile.bonusAttendanceAll = profile.bonusAttendance;
-
-        profile.attendance = profile.attendance.filter(function(value){
-            for (var i = 0;i < classYear.dates.length;i++){
-                if (classYear.dates[i].getTime() === value.getTime()){
-                    return true;
-                }
-            }
-            return false;
-        });
-        profile.bonusAttendance = profile.bonusAttendance.filter(function(value){
-            for (var i = 0;i < classYear.bonusDates.length;i++){
-                if (classYear.bonusDates[i].getTime() === value.getTime()){
-                    return true;
-                }
-            }
-            return false;
-        });
-        profile.totalDays = classYear.days;
         profile.dates = classYear.dates;
         profile.bonusDates = classYear.bonusDates;
 
-        profile.totalBonusDays = classYear.bonusDays;
+        profile.attendance = profile.attendance.filter(function(value){
+            for (var i = 0;i < profile.dates.length;i++){
+                if (profile.dates[i].getTime() === value.getTime()){
+                    return true;
+                }
+            }
+            return false;
+        });
+        profile.bonusAttendance = profile.attendance.filter(function(value){
+            for (var i = 0;i < profile.bonusDates.length;i++){
+                if (profile.bonusDates[i].getTime() === value.getTime()){
+                    return true;
+                }
+            }
+            return false;
+        });
+
+
+        if (!'attendanceByYear' in profile || profile.attendanceByYear == undefined){
+            profile.attendanceByYear = [];
+        }
+        for (var i = profile.attendanceByYear.length-1; i>=0 ; i--){
+            if (profile.attendanceByYear[i].year.equals(classYear._id)){
+                profile.attendance.concat(profile.attendanceByYear[i].verified.filter(function(value){
+                    return !value.bonusDay && !value.smallgroup;
+                }).map(function(value){
+                    return value.date;
+                }));
+
+                profile.bonusAttendance.concat(profile.attendanceByYear[i].verified.filter(function(value){
+                    return value.bonusDay && !value.smallgroup;
+                }).map(function(value){
+                    return value.date;
+                }));
+                break;
+            }
+        }
+
+        if (user.smallgroup){
+            profile.smallDates = user.smallgroup.dates;
+            profile.smallgroup = user.smallgroup.name;
+            profile.smallAttendance = profile.attendance.filter(function(value){
+                for (var i = 0;i < profile.smallDates.length;i++){
+                    if (profile.smallDates[i].getTime() === value.getTime()){
+                        return true;
+                    }
+                }
+                return false;
+            });
+            for (var i = profile.attendanceByYear.length-1; i>=0 ; i--){
+                if (profile.attendanceByYear[i].year.equals(classYear._id)){
+                    profile.smallAttendance.concat(profile.attendanceByYear[i].verified.filter(function(value){
+                        return !value.bonusDay && value.smallgroup;
+                    }).map(function(value){
+                        return value.date;
+                    }));
+                    break;
+                }
+            }
+
+        }
         return res.json(profile);
     });
   });
