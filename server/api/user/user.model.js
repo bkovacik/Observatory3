@@ -783,7 +783,7 @@ UserSchema.methods = {
             }
         }
 
-        if (user.smallgroup){
+        if ('smallgroup' in user && user.smallgroup != undefined && user.smallgroup.dates != undefined){
             res.totalSmallDates = user.smallgroup.dates;
             res.smallgroup = user.smallgroup.name;
             res.currentSmallAttendance = user.attendance.filter(function(value){

@@ -10,7 +10,10 @@
             <td ng-click="setSortOrder('email')">Email</td>
             <td ng-click="setSortOrder('role')">Role</td>
             <td ng-click="setSortOrder('github.login')">Github</td>
-            <td ng-click="setSortOrder('attendence')">Attendence</td>
+            <td ng-click="setSortOrder('currentAttendance')">Attendance</td>
+            <td ng-click="setSortOrder('currentSmallAttendance')">Small Group Attendance</td>
+            <td ng-click="setSortOrder('currentBonusAttendance')">Bonus Attendance</td>
+
             <td ng-click="setSortOrder('github.events.length')">Events</td>
             <td ng-click="setSortOrder('commits.length')">Commits</td>
             <td ng-click="setSortOrder('active')">Active</td>
@@ -28,8 +31,11 @@
                 </select>
               </td>
               <td><a href="http://github.com/{{user.github.login}}">{{user.github.login}}</a></td>
-              <td>{{ user.attendance }}</td>
-              <td>{{ user.github.events.length }}</td>
+              <td>{{ user.currentAttendance.length }}</td>
+              <td>{{ user.currentSmallAttendance.length }}</td>
+
+              <td>{{ user.currentBonusAttendance.length }}</td>
+              <td>{{ user.github.events.length || 0  }}</td>
               <td>{{ user.commits.length }}</td>
               <td><a class="btn btn-warning" href="#" role="button" ng-click="toggle( user )">{{ user.active }}</a></td>
           </tr>

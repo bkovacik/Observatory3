@@ -111,38 +111,49 @@ exports.allStats = function(req, res) {
     var userInfo = [];
     var count = users.length;
 
-    var getCommits = function(user){
-      Commit.find()
-            .where('author.login').equals(String(user.github.login))
-            .where('date').gt(twoWeeks)
-            .exec(function(err, commits){
-                if(err){
-                    user.commits = [] ;
-                    count--;
-                    userInfo.push(user);
-                    if (count === 0){
-                      res.json(200, userInfo);
-                    }
-                }
-                else{
-                    var commitList = [];
-                    commits.forEach(function (c){
-                        commitList.push(c.toObject());
-                      }
-                    )
-                    user.commits = commitList ;
-                    count--;
-                    userInfo.push(user);
-                    if (count === 0){
-                      res.json(200, userInfo);
-                    }
-                }
+    var getCommits = function(u){
+        var user = u.privateProfile;
+        u.getCurrentAttendance(function(attend){
+            user.totalDates = attend.totalDates;
+            user.totalBonusDates = attend.totalBonusDates;
+            user.currentAttendance = attend.currentAttendance;
+            user.currentBonusAttendance = attend.currentBonusAttendance;
+            user.totalSmallDates = attend.totalSmallDates;
+            user.smallgroup = attend.smallgroup;
+            user.currentSmallAttendance = attend.currentSmallAttendance;
 
-            });
+              Commit.find()
+                    .where('author.login').equals(String(user.githubProfile))
+                    .where('date').gt(twoWeeks)
+                    .exec(function(err, commits){
+                        if(err){
+                            user.commits = [] ;
+                            count--;
+                            userInfo.push(user);
+                            if (count === 0){
+                              res.json(200, userInfo);
+                            }
+                        }
+                        else{
+                            var commitList = [];
+                            commits.forEach(function (c){
+                                commitList.push(c.toObject());
+                              }
+                            )
+                            user.commits = commitList ;
+                            count--;
+                            userInfo.push(user);
+                            if (count === 0){
+                              res.json(200, userInfo);
+                            }
+                        }
+
+                    });
+        });
     }
 
     for (var i = 0; i < users.length; i++){
-      var u = users[i].stats;
+      var u = users[i];
       getCommits(u);
       }
     });
@@ -240,24 +251,18 @@ exports.privateProfile = function (req, res, next) {
     if (!user) {return res.send(404);}
     var profile = user.privateProfile;
 
-    ClassYear.findOne({
-        "current": true
-    })
-    .exec(function (err, classYear) {
+    user.getCurrentAttendance(function(attend){
+        profile.totalDates = attend.totalDates;
+        profile.totalBonusDates = attend.totalBonusDates;
+        profile.currentAttendance = attend.currentAttendance;
+        profile.currentBonusAttendance = attend.currentBonusAttendance;
+        profile.currentAttendance = attend.currentAttendance;
+        profile.totalSmallDates = attend.totalSmallDates;
+        profile.smallgroup = attend.smallgroup;
+        profile.currentSmallAttendance = attend.currentSmallAttendance;
 
-        user.getCurrentAttendance(function(attend){
-            profile.totalDates = attend.totalDates;
-            profile.totalBonusDates = attend.totalBonusDates;
-            profile.currentAttendance = attend.currentAttendance;
-            profile.currentBonusAttendance = attend.currentBonusAttendance;
-            profile.currentAttendance = attend.currentAttendance;
-            profile.totalSmallDates = attend.totalSmallDates;
-            profile.smallgroup = attend.smallgroup;
-            profile.currentSmallAttendance = attend.currentSmallAttendance;
+        return res.json(profile);
 
-            return res.json(profile);
-
-        });
     });
   });
 };
