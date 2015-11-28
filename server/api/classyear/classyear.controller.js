@@ -74,7 +74,10 @@ exports.create = function(req, res) {
           }
         }
       });
-      res.send(204);
+      ClassYear.getCurrent(function(err, currentClassYear){
+          global.currentClassYear = currentClassYear;
+          res.send(204);
+      });
     });
 
   })
@@ -88,7 +91,12 @@ exports.update = function(req, res) {
     if(err) { return handleError(res, err); }
     classYear.update(req.body, function(err){
       if(err) { return handleError(res, err); }
-      res.send(204);
+      ClassYear.getCurrent(function(err, currentClassYear){
+          global.currentClassYear = currentClassYear;
+          res.send(204);
+
+      });
+
     });
   });
 };

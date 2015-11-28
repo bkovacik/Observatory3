@@ -9,38 +9,86 @@ angular.module('observatory3App')
         loggedInUser = user;
         $scope.isuser = loggedInUser._id === $stateParams.id;
         $scope.loggedInUserRole = loggedInUser.role;
-      });
 
-      $http.get('/api/users/' + $stateParams.id).success(function(user){
-          $scope.user = user;
-            console.log(user);
+        if ($scope.isuser || $scope.loggedInUserRole === 'admin'){
+            $http.get('/api/users/' + $stateParams.id+'/private').success(function(user){
+                $scope.user = user;
+                if (!$scope.user.bio){
+                    $scope.user.bio = "An awesome RCOS developer!";
+                }
+                $scope.originalRole = user.role;
+                $scope.user.attendanceDays = user.currentAttendance.length + user.currentSmallAttendance.length;
+                $scope.user.attendanceBonus = user.currentBonusAttendance.length;
 
-          $scope.originalRole = user.role;
-          $scope.user.attendanceDays = user.attendance.length + user.smallAttendance.length;
-          $scope.user.attendanceBonus = user.bonusAttendance.length;
+                $scope.user.totalAttendance = $scope.user.attendanceDays + user.currentBonusAttendance.length;
 
-          $scope.user.totalAttendance = $scope.user.attendanceDays + user.bonusAttendance.length;
+                $scope.user.allDays = user.totalDates.length + user.totalSmallDates.length;
+                $scope.greyWidth = 0;
+                if ($scope.user.allDays === 0){
+                    $scope.goodWidth = 0;
+                    $scope.greyWidth = 100;
+                }
+                else{
+                    if ($scope.user.totalAttendance >= $scope.user.allDays){
+                        $scope.goodWidth = 100;
+                    }
+                    else{
+                        $scope.goodWidth = 100*$scope.user.totalAttendance / $scope.user.allDays ;
+                    }
+                }
+                $http.get('/api/commits/user/' + user.githubProfile).success(function(commits){
+                    $scope.user.commits = commits;
+                    });
+                // get all users projects information
+                $scope.projects = [];
+                user.projects.forEach(function(projectId){
+                  $http.get("/api/projects/" + projectId).success(function(project){
+                    $scope.projects.push(project);
 
-          $scope.user.allDays = user.dates.length + user.smallDates.length;
+                   $http.get('/api/commits/user/' + user.githubProfile).success(function(commits){
+                       $scope.user.commits = commits;
+                   });
 
-          $scope.goodWidth = $scope.user.totalAttendance / $scope.user.allDays ;
-
-          $http.get('/api/commits/user/' + user.githubProfile).success(function(commits){
-              $scope.user.commits = commits;
-          });
-          // get all users projects information
-          $scope.projects = [];
-          user.projects.forEach(function(projectId){
-            $http.get("/api/projects/" + projectId).success(function(project){
-              $scope.projects.push(project);
-
-             $http.get('/api/commits/user/' + user.githubProfile).success(function(commits){
-                 $scope.user.commits = commits;
-             });
-
+                  });
+                });
             });
-          });
+        }
+        else{
+            $http.get('/api/users/' + $stateParams.id).success(function(user){
+                $scope.user = user;
+                if (!$scope.user.bio){
+                    $scope.user.bio = "An awesome RCOS developer!";
+                }
+                $scope.originalRole = user.role;
+                $scope.user.attendanceDays = user.attendance.length + user.smallAttendance.length;
+                $scope.user.attendanceBonus = user.bonusAttendance.length;
+
+                $scope.user.totalAttendance = $scope.user.attendanceDays + user.bonusAttendance.length;
+
+                $scope.user.allDays = user.dates.length + user.smallDates.length;
+
+                $scope.goodWidth = $scope.user.totalAttendance / $scope.user.allDays ;
+
+                $http.get('/api/commits/user/' + user.githubProfile).success(function(commits){
+                    $scope.user.commits = commits;
+                    });
+                // get all users projects information
+                $scope.projects = [];
+                user.projects.forEach(function(projectId){
+                  $http.get("/api/projects/" + projectId).success(function(project){
+                    $scope.projects.push(project);
+
+                   $http.get('/api/commits/user/' + user.githubProfile).success(function(commits){
+                       $scope.user.commits = commits;
+                   });
+
+                  });
+                });
+            });
+        }
       });
+
+
 
       $scope.edittingBio = false;
 

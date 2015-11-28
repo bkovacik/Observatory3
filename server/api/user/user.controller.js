@@ -25,7 +25,7 @@ var validationError = function(res, err) {
  * Get list of users
  */
 exports.index = function(req, res) {
-  User.find({}, '-salt -hashedPassword', function (err, users) {
+  User.find({}, '-salt -hashedPassword -passwordResetToken -passwordResetExpiration', function (err, users) {
     if(err) return res.send(500, err);
     res.json(200, users);
   });
@@ -40,7 +40,7 @@ exports.index = function(req, res) {
 exports.search = function(req, res){
     if (!req.query.query) return res.send(400, "No query supplied");
     var query = new RegExp(["^", req.query.query, "$"].join(""), "i")
-    User.findOne({name: query}, function(err, user){
+    User.findOne({name: query},  '-salt -hashedPassword -passwordResetToken -passwordResetExpiration', function(err, user){
         if (err) return res.send(500, err);
         if (!user){
             if (req.query.single){
@@ -64,7 +64,7 @@ exports.search = function(req, res){
  */
 exports.stats = function(req, res) {
   // Only return users who are active and have a github login
-  User.find({active: true, 'github.login': {$exists: true}}, '-salt -hashedPassword' ).exec(function (err, users) {
+  User.find({active: true, 'github.login': {$exists: true}}, '-salt -hashedPassword -passwordResetToken -passwordResetExpiration' ).exec(function (err, users) {
     if(err) return res.send(500, err);
     var twoWeeks = new Date();
     twoWeeks.setDate(twoWeeks.getDate()-14);
@@ -104,7 +104,7 @@ exports.stats = function(req, res) {
  */
 exports.allStats = function(req, res) {
   // Only return users who are active and have a github login
-  User.find({'github.login': {$exists: true}}, '-salt -hashedPassword' ).exec(function (err, users) {
+  User.find({'github.login': {$exists: true}}, '-salt -hashedPassword -passwordResetToken -passwordResetExpiration' ).exec(function (err, users) {
     if(err) return res.send(500, err);
     var twoWeeks = new Date();
     twoWeeks.setDate(twoWeeks.getDate()-14);
@@ -153,7 +153,7 @@ exports.allStats = function(req, res) {
  */
 exports.list = function(req, res) {
   // Only return users who are active and have a github login
-  User.find({active: true, 'github.login': {$exists: true}}, '-salt -hashedPassword', function (err, users) {
+  User.find({active: true, 'github.login': {$exists: true}}, '-salt -hashedPassword -passwordResetToken -passwordResetExpiration', function (err, users) {
     if(err) return res.send(500, err);
     var userInfo = [];
 
@@ -168,7 +168,7 @@ exports.list = function(req, res) {
  * Get list of all past users
  */
 exports.past = function(req, res) {
-  User.find({active: false}, '-salt -hashedPassword', function (err, users) {
+  User.find({active: false}, '-salt -hashedPassword -passwordResetToken -passwordResetExpiration', function (err, users) {
     if(err) return res.send(500, err);
       var userInfo = [];
 
@@ -212,6 +212,7 @@ exports.show = function (req, res, next) {
   var userId = req.params.id;
 
   User.findById(userId)
+  .select( '-salt -hashedPassword -passwordResetToken -passwordResetExpiration')
   .populate('smallgroup')
   .exec(function (err, user) {
     if (err) {return next(err);}
@@ -221,81 +222,46 @@ exports.show = function (req, res, next) {
         "current": true
     })
     .exec(function (err, classYear) {
-        if(err) { return res;}
-        console.log(user.profile);
-        profile.dates = classYear.dates;
-        profile.bonusDates = classYear.bonusDates;
-
-        profile.attendance = profile.attendance.filter(function(value){
-            for (var i = 0;i < profile.dates.length;i++){
-                if (profile.dates[i].getTime() === value.getTime()){
-                    return true;
-                }
-            }
-            return false;
-        });
-        profile.bonusAttendance = profile.attendance.filter(function(value){
-            for (var i = 0;i < profile.bonusDates.length;i++){
-                if (profile.bonusDates[i].getTime() === value.getTime()){
-                    return true;
-                }
-            }
-            return false;
-        });
-
-
-        if (!'attendanceByYear' in profile || profile.attendanceByYear == undefined){
-            profile.attendanceByYear = [];
-        }
-        for (var i = profile.attendanceByYear.length-1; i>=0 ; i--){
-            if (profile.attendanceByYear[i].year.equals(classYear._id)){
-                profile.attendance.concat(profile.attendanceByYear[i].verified.filter(function(value){
-                    return !value.bonusDay && !value.smallgroup;
-                }).map(function(value){
-                    return value.date;
-                }));
-
-                profile.bonusAttendance.concat(profile.attendanceByYear[i].verified.filter(function(value){
-                    return value.bonusDay && !value.smallgroup;
-                }).map(function(value){
-                    return value.date;
-                }));
-                break;
-            }
-        }
-
-        if (user.smallgroup){
-            profile.smallDates = user.smallgroup.dates;
-            profile.smallgroup = user.smallgroup.name;
-            profile.smallAttendance = profile.attendance.filter(function(value){
-                for (var i = 0;i < profile.smallDates.length;i++){
-                    if (profile.smallDates[i].getTime() === value.getTime()){
-                        return true;
-                    }
-                }
-                return false;
-            });
-            for (var i = profile.attendanceByYear.length-1; i>=0 ; i--){
-                if (profile.attendanceByYear[i].year.equals(classYear._id)){
-                    profile.smallAttendance.concat(profile.attendanceByYear[i].verified.filter(function(value){
-                        return !value.bonusDay && value.smallgroup;
-                    }).map(function(value){
-                        return value.date;
-                    }));
-                    break;
-                }
-            }
-
-        }
-        else{
-            profile.smallDates = [];
-            profile.smallAttendance = [];
-        }
-        console.log(profile);
         return res.json(profile);
     });
   });
 };
+
+/**
+ * Get a single user
+ */
+exports.privateProfile = function (req, res, next) {
+  var userId = req.params.id;
+  User.findById(userId)
+  .select( '-salt -hashedPassword -passwordResetToken -passwordResetExpiration')
+  .populate('smallgroup')
+  .exec(function (err, user) {
+    if (err) {return next(err);}
+    if (!user) {return res.send(404);}
+    var profile = user.privateProfile;
+
+    ClassYear.findOne({
+        "current": true
+    })
+    .exec(function (err, classYear) {
+
+        user.getCurrentAttendance(function(attend){
+            profile.totalDates = attend.totalDates;
+            profile.totalBonusDates = attend.totalBonusDates;
+            profile.currentAttendance = attend.currentAttendance;
+            profile.currentBonusAttendance = attend.currentBonusAttendance;
+            profile.currentAttendance = attend.currentAttendance;
+            profile.totalSmallDates = attend.totalSmallDates;
+            profile.smallgroup = attend.smallgroup;
+            profile.currentSmallAttendance = attend.currentSmallAttendance;
+
+            return res.json(profile);
+
+        });
+    });
+  });
+};
+
 
 
 /**
@@ -304,7 +270,7 @@ exports.show = function (req, res, next) {
 exports.avatar = function (req, res, next) {
   var userId = req.params.id;
 
-  User.findById(userId, function (err, user) {
+  User.findById(userId,  '-salt -hashedPassword -passwordResetToken -passwordResetExpiration',function (err, user) {
     if (err) return next(err);
     if (!user) return res.send(404);
     return res.json(user.avatar);
@@ -335,7 +301,7 @@ exports.role = function(req, res) {
     if (roles.indexOf(newRole) === -1){
         res.send(400, {error: "Role does not exist."});
     }
-    User.findById(userId, function(err,user){
+    User.findById(userId,  '-salt -hashedPassword -passwordResetToken -passwordResetExpiration',function(err,user){
         if (err){
             res.send(500, err);
         }else{
@@ -361,7 +327,7 @@ exports.changePassword = function(req, res, next) {
   var token   = String(req.body.token);
   var newPass = String(req.body.newPassword);
 
-  User.findById(userId, function (err, user) {
+  User.findById(userId,function (err, user) {
     if(user.authenticate(oldPass) || user.validResetToken(token)) {
       user.password = newPass;
       user.passwordResetToken = '';
@@ -381,12 +347,12 @@ exports.changePassword = function(req, res, next) {
 exports.changeBio = function(req,res){
     var userId = req.user._id;
     var newBio = String(req.body.bio);
-    User.findById(userId, function(err,user){
+    User.findById(userId,  '-salt -hashedPassword -passwordResetToken -passwordResetExpiration',function(err,user){
         user.bio = newBio;
-        res.json({bio:user.bio});
         user.save(function(err){
             if (err) return validationError(res,err);
-            res.send(200);
+            return res.json({bio:user.bio});
+
         })
 
     });
@@ -398,7 +364,7 @@ exports.changeBio = function(req,res){
  exports.changeGithub = function(req,res){
    var userId = req.user._id;
    var newGithubProfile = String(req.body.github);
-   User.findById(userId, function(err,user){
+   User.findById(userId,  '-salt -hashedPassword -passwordResetToken -passwordResetExpiration',function(err,user){
      user.github.login = newGithubProfile;
      res.json({githubProfile:user.github.login});
      user.save(function(err){
@@ -414,7 +380,7 @@ exports.changeBio = function(req,res){
 exports.deactivate = function(req, res, next) {
   var userId = String(req.params.id);
 
-  User.findOne({ '_id': userId}, function(err, user){
+  User.findOne({ '_id': userId},  '-salt -hashedPassword -passwordResetToken -passwordResetExpiration',function(err, user){
     if (err) return res.send(500, err);
 
     user.active = false;
@@ -431,7 +397,7 @@ exports.deactivate = function(req, res, next) {
 exports.activate = function(req, res, next) {
   var userId = String(req.params.id);
 
-  User.findOne({ '_id': userId}, function(err, user){
+  User.findOne({ '_id': userId},  '-salt -hashedPassword -passwordResetToken -passwordResetExpiration',function(err, user){
     if (err) return res.send(500, err);
 
     user.active = true;
@@ -449,7 +415,7 @@ exports.me = function(req, res, next) {
   var userId = req.user._id;
   User.findOne({
     _id: userId
-  }, '-salt -hashedPassword', function(err, user) { // don't ever give out the password or salt
+}, '-salt -hashedPassword -passwordResetToken -passwordResetExpiration', function(err, user) { // don't ever give out the password or salt
     if (err) return next(err);
     if (!user) return res.json(401);
     res.json(user);
@@ -478,32 +444,34 @@ exports.attend = function(req,res){
         var needsVerification = Math.random() < config.attendanceVerificationRatio ? true : false;
 
             if (classYear.dayCodeInfo.bonusDay){
-                console.log("Bonus", req.user.presenceBonus);
                 if (req.user.presenceBonus !== "absentBonus") return res.send(400, "Attendance already recorded: " + req.user.presence);
 
                 if (!needsVerification){
                     user.presence = "presentBonus";
+                    return res.send(200, {"unverified": false});
                 }
                 else{
                     user.presence = "unverifiedBonus";
+                    return res.send(200, {"unverified": true});
                 }
-                return res.send(200, {"unverified": true});
             }
             else{
-                console.log("Normal", req.user.presence);
                 if (req.user.presence !== "absent") return res.send(400, "Attendance already recorded: " + req.user.presence);
 
                 if (!needsVerification){
                     user.presence = "present";
+                    return res.send(200, {"unverified": false});
+
                 }
                 else{
                     user.presence = "unverified";
+                    return res.send(200, {"unverified": true});
+
                 }
                 return res.send(200, {"unverified": false});
             }
       }else{
           // Classyear attendance code was incorrect, try small group
-          console.log("Small", req.user.presenceSmall);
 
           if (!user.smallgroup){
               return res.send(400, "Incorrect day code");
@@ -529,7 +497,7 @@ exports.attend = function(req,res){
 exports.getUnverifiedAttendanceUsers = function(req,res){
   User.find({
     active: true
-  }, function(err, users){
+},  '-salt -hashedPassword -passwordResetToken -passwordResetExpiration',function(err, users){
     if (err) res.send(500, err);
 
     var unverifiedUsers = [];
@@ -547,7 +515,7 @@ exports.getUnverifiedAttendanceUsers = function(req,res){
  */
 exports.verifyAttendance = function(req,res){
   var userId = req.params.id;
-  User.findById(userId, function(err, user){
+  User.findById(userId,  '-salt -hashedPassword -passwordResetToken -passwordResetExpiration', function(err, user){
     if (err) return res.send(500, err);
     if (!user) return res.send(400, "No User with Id");
     if (user.presence === "unverified"){
@@ -569,7 +537,7 @@ exports.verifyAttendance = function(req,res){
 exports.addTech = function(req,res){
     var userId = req.params.id;
     var newTech = req.body.tech;
-    User.findById(userId, function(err,user){
+    User.findById(userId,  '-salt -hashedPassword -passwordResetToken -passwordResetExpiration', function(err,user){
         if (err){
             res.send(500, err);
         }else{
@@ -589,7 +557,7 @@ exports.addTech = function(req,res){
 exports.removeTech = function(req,res){
     var userId = req.params.id;
     var tech = req.body.tech;
-    User.findById(userId, function(err,user){
+    User.findById(userId,  '-salt -hashedPassword -passwordResetToken -passwordResetExpiration', function(err,user){
         if (err){
             res.send(500, err);
         }else{
@@ -610,7 +578,7 @@ exports.resetPassword = function(req, res){
     var userEmail = req.body.email;
     User.findOne({
         email: userEmail.toLowerCase()
-    }, function (err, user){
+    },  '-salt -hashedPassword -passwordResetToken -passwordResetExpiration', function (err, user){
         if (err) return res.json(401, err);
         if (!user) return res.send(200);
 
@@ -649,7 +617,7 @@ exports.resetPassword = function(req, res){
 exports.addProject = function(req,res){
     var userId = req.params.id;
     var newProject = req.body.project;
-    User.findById(userId, function(err,user){
+    User.findById(userId,  '-salt -hashedPassword -passwordResetToken -passwordResetExpiration', function(err,user){
         if (err){
             res.send(500, err);
         }else{
@@ -670,7 +638,7 @@ exports.addProject = function(req,res){
 exports.removeProject = function(req,res){
     var userId = req.params.id;
     var project = req.body.project;
-    User.findById(userId, function(err,user){
+    User.findById(userId,  '-salt -hashedPassword -passwordResetToken -passwordResetExpiration', function(err,user){
         if (err){
             res.send(500, err);
         }else{

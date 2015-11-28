@@ -56,6 +56,8 @@ exports.getSmallGroup = function(req, res){
     var id = req.params.id;
     SmallGroup.findById(id, function(err, smallgroup){
         if (err) return handleError(res, err);
+        if (!smallgroup) return handleError(res, err);
+
         var responseObject = smallgroup.toObject();
         // If user is not a mentor or not authenticated, don't give dayCode
         if (!req.user || !req.user.isMentor){
@@ -81,8 +83,9 @@ exports.getSmallGroup = function(req, res){
 };
 
 function getFullMember(memberId, callback){
-    User.findById(memberId, function(err, member){
+    User.findById(memberId,  '-salt -hashedPassword', function(err, member){
         if (err) return callback("Could not find user", null);
+        if (!member) return callback("Could not find user", null);
         member.getFullProfile(function(fullProfile){
             // Add the user's attendance
             fullProfile.presence = member.presence;
@@ -95,6 +98,8 @@ exports.getSmallGroupMembers = function(req, res){
     var id = req.params.id;
     SmallGroup.findById(id, function(err, smallgroup){
         if (err) return handleError(res, err);
+        if (!smallgroup) return handleError(res, err);
+
         var members = [];
         var loadedMembers = 0;
 
@@ -122,7 +127,7 @@ exports.addMember = function(req, res){
         $addToSet: { students : memberId }
     }, function(err, smallgroup){
         if (err) return handleError(res, err);
-        User.findById(memberId, function(err, user){
+        User.findById(memberId,  '-salt -hashedPassword', function(err, user){
             if (err) return handleError(res,err); //TODO this error leaves us in a bad state...
             user.smallgroup = smallGroupId
             user.save();

@@ -112,16 +112,13 @@ UserSchema
     .get(function(){
         var today = new Date();
         today.setHours(0,0,0,0);
-        var classYear = ClassYear.currentClassYear;
+        var classYear = global.currentClassYear;
         if (!'attendanceByYear' in this || this.attendanceByYear == undefined){
             return 'absent';
         }
-        // console.log('this.attendanceByYear',this.attendanceByYear);
 
         for (var i = this.attendanceByYear.length-1; i>=0; i--){
-            console.log("this.attendanceByYear[i].year.equals(classYear._id)",this.attendanceByYear[i].year.equals(classYear._id),this.attendanceByYear[i].year === classYear._id, this.attendanceByYear[i].year , classYear._id);
             if (this.attendanceByYear[i].year.equals(classYear._id)){
-                console.log("Get Found year", this.attendanceByYear[i].year, this.attendanceByYear[i]);
 
                 var thisYear = this.attendanceByYear[i];
                 for (var a = thisYear.verified.length-1; a>= 0 ; a--){
@@ -143,7 +140,6 @@ UserSchema
                 return 'absent';
             }
         }
-        console.log("Get Added year", this.attendanceByYear);
 
         return 'absent';
     })
@@ -153,24 +149,19 @@ UserSchema
             this.attendanceByYear = [];
         }
         //New style attendence
-        var classYear = ClassYear.currentClassYear;
+        var classYear = global.currentClassYear;
             //Find the year
-            console.log("this",this);
             var foundYear = false;
             for (var i = this.attendanceByYear.length-1; i>=0 ; i--){
                 if (this.attendanceByYear[i].year.equals(classYear._id)){
                     foundYear = true;
-                    console.log("Found year", this.attendanceByYear[i].year, this.attendanceByYear[i]);
                     var thisYear = this.attendanceByYear[i];
-                    console.log("Status: ", status);
 
                     if (status === 'present' || status === 'presentSmall' || status === 'presentBonus'){
-                    console.log("check Status present", thisYear);
 
                         // Check if user is unverified for today
                         for (var a = thisYear.unverified.length-1; a>= 0 ; a--){
                           if (isoDateToTime(thisYear.unverified[a].date) === isoDateToTime(today)){
-                              console.log("Found unverified", isoDateToTime(today));
 
                             var thisDate = thisYear.unverified[a];
                             var found = false;
@@ -187,7 +178,6 @@ UserSchema
                                 thisYear.unverified[a].splice(a,1);
                                 thisYear.verified.push(thisDate);
                                 this.attendanceByYear[i]=thisYear;
-                                console.log("check save", thisYear);
                                 // this.attendanceByYear[i].verified.set()
                                 this.markModified("attendanceByYear");
                                 thisYear.save();
@@ -198,10 +188,8 @@ UserSchema
 
                         // Check if user is already verified for today
                         for (var a = thisYear.verified.length-1; a>= 0 ; a--){
-                            console.log("Search verified", thisYear.verified[a]);
 
                           if (isoDateToTime(thisYear.verified[a].date) === isoDateToTime(today)){
-                            console.log("Found verified", isoDateToTime(today));
 
                             var thisDate = thisYear.verified[a];
                             var found = false;
@@ -241,7 +229,6 @@ UserSchema
                                 smallgroup:false
                             });
                         }
-                        console.log("check save2", thisYear);
 
                         this.markModified("attendanceByYear");
                         this.save();
@@ -422,7 +409,7 @@ UserSchema
         if (!'attendanceByYear' in this || this.attendanceByYear == undefined){
             return 'absentSmall';
         }
-        var classYear = ClassYear.currentClassYear;
+        var classYear = global.currentClassYear;
             for (var i = this.attendanceByYear.length-1; i>=0; i--){
                 if (this.attendanceByYear[i].year.equals(classYear._id)){
                     var thisYear = this.attendanceByYear[i];
@@ -472,7 +459,7 @@ UserSchema
             return 'absentBonus';
         }
 
-        var classYear = ClassYear.currentClassYear;
+        var classYear = global.currentClassYear;
             for (var i = this.attendanceByYear.length-1; i>=0; i--){
                 if (this.attendanceByYear[i].year.equals(classYear._id)){
                     var thisYear = this.attendanceByYear[i];
@@ -514,22 +501,16 @@ UserSchema
     });
 
 // Public profile information
-// TODO this is redundant with getFullProfile- can it be deleted?
 UserSchema
   .virtual('profile')
   .get(function() {
-    var twoWeeks = new Date();
-    twoWeeks.setDate(twoWeeks.getDate()-14);
     return {
       '_id':this._id.toString('binary'),
       'name': this.name,
       'role': this.role,
+      'active': this.active,
       'avatar': this.avatar,
-      'email': this.email,
       'semesters': this.semesterCount,
-      'attendance': this.attendance,
-      "attendanceScore": 0,
-      "attendanceBonus": 0,
       'projects': this.projects,
       'tech': this.tech,
       'bio': this.bio,
@@ -537,7 +518,29 @@ UserSchema
     };
   });
 
-// User list information
+ UserSchema
+   .virtual('privateProfile')
+   .get(function() {
+     return {
+       '_id':this._id.toString('binary'),
+       'name': this.name,
+       'email': this.email,
+       'active': this.active,
+       'role': this.role,
+       'smallgroup': this.smallgroup,
+       'tech': this.tech,
+       'avatar': this.avatar,
+       'projects': this.projects,
+       'bio': this.bio,
+       'attendanceByYear': this.attendanceByYear,
+       'attendance': this.attendance,
+       'unverifiedAttendance': this.unverifiedAttendance,
+       'semesters': this.semesterCount,
+       'rcosStyle': this.rcosStyle,
+       'githubProfile': this.github.login
+     };
+   });
+
 UserSchema
   .virtual('stats')
   .get(function() {
@@ -722,15 +725,96 @@ UserSchema.methods = {
            'email': user.email,
            'semesters': user.semesterCount,
            'attendance': user.attendance,
-           "attendanceScore": 0,
-           "attendanceBonus": 0,
            'projects': fullProjects,
            'tech': user.tech,
            'bio': user.bio,
            'githubProfile': user.github.login
        });
      });
+  },
+
+  getCurrentAttendance: function(callback){
+    var user = this;
+    ClassYear.findOne({
+        "current": true
+    })
+    .exec(function (err, classYear) {
+        if(err) { return res;}
+        var res = {};
+        res.totalDates = classYear.dates;
+        res.totalBonusDates = classYear.bonusDates;
+
+        res.currentAttendance = user.attendance.filter(function(value){
+            for (var i = 0;i < res.totalDates.length;i++){
+                if (res.totalDates[i].getTime() === value.getTime()){
+                    return true;
+                }
+            }
+            return false;
+        });
+        res.currentBonusAttendance = res.currentAttendance.filter(function(value){
+            for (var i = 0;i < res.totalBonusDates.length;i++){
+                if (res.totalBonusDates[i].getTime() === value.getTime()){
+
+                    return true;
+                }
+            }
+            return false;
+        });
+
+
+        if (!'attendanceByYear' in user || user.attendanceByYear == undefined){
+            user.attendanceByYear = [];
+        }
+        for (var i = user.attendanceByYear.length-1; i>=0 ; i--){
+            if (user.attendanceByYear[i].year.equals(classYear._id)){
+                res.currentAttendance = res.currentAttendance.concat(user.attendanceByYear[i].verified.filter(function(value){
+                    return !value.bonusDay && !value.smallgroup;
+                }).map(function(value){
+                    return value.date;
+                }));
+
+                res.currentBonusAttendance = res.currentBonusAttendance.concat(user.attendanceByYear[i].verified.filter(function(value){
+                    return value.bonusDay && !value.smallgroup;
+                }).map(function(value){
+                    return value.date;
+                }));
+                break;
+            }
+        }
+
+        if (user.smallgroup){
+            res.totalSmallDates = user.smallgroup.dates;
+            res.smallgroup = user.smallgroup.name;
+            res.currentSmallAttendance = user.attendance.filter(function(value){
+                for (var i = 0;i < res.totalSmallDates.length;i++){
+                    if (res.totalSmallDates[i].getTime() === value.getTime()){
+                        return true;
+                    }
+                }
+                return false;
+            });
+            for (var i = user.attendanceByYear.length-1; i>=0 ; i--){
+                if (user.attendanceByYear[i].year.equals(classYear._id)){
+                    res.currentSmallAttendance = res.currentSmallAttendance.concat(user.attendanceByYear[i].verified.filter(function(value){
+                        return !value.bonusDay && value.smallgroup;
+                    }).map(function(value){
+                        return value.date;
+                    }));
+                    break;
+                }
+            }
+
+        }
+        else{
+            res.totalSmallDates = [];
+            res.currentSmallAttendance = [];
+        }
+        callback(res);
+    });
   }
 };
+
+
 
 module.exports = mongoose.model('User', UserSchema);

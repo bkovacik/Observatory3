@@ -66,7 +66,7 @@ exports.create = function(req, res) {
 
     //Add creator to any new project
     var userId = req.user._id;
-    User.findById(userId, function(err, user){
+    User.findById(userId,  '-salt -hashedPassword', function(err, user){
       if (err){
         res.send(500, err);
       }else{
@@ -91,7 +91,7 @@ exports.update = function(req, res) {
 
     // Only mentors and project owners can update a project
     var userId = req.user._id;
-    User.findById(userId, function(err, user) {
+    User.findById(userId,  '-salt -hashedPassword', function(err, user) {
       if (err) { return handleError(res, err); }
 
       if (user.projects.indexOf(project._id) >= 0 || user.role === 'mentor' || user.role === 'admin'){
@@ -175,7 +175,7 @@ exports.deletePhoto = function(req, res) {
           }
       }
       project.save(function (err) {
-        User.findById(userId, function(err, user) {
+        User.findById(userId,  '-salt -hashedPassword', function(err, user) {
           if (err) { return handleError(res, err); }
 
           if (user.projects.indexOf(project._id) >= 0 || user.role === 'mentor' || user.role === 'admin'){

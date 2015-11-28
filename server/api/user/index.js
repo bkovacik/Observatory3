@@ -23,6 +23,7 @@ router.put('/:id/password', auth.isAuthenticated(), controller.changePassword);
 router.put('/:id/deactivate', auth.isAuthenticated(), controller.deactivate);
 router.put('/:id/activate', auth.isAuthenticated(), controller.activate);
 router.get('/:id', controller.show);
+router.get('/:id/private', auth.canEdit() || auth.hasRole('admin'), controller.privateProfile);
 router.post('/', controller.create);
 router.put('/:id/attend', auth.canEdit(), controller.attend);
 router.put('/:id/verifyAttendance', auth.hasRole('mentor'), controller.verifyAttendance);

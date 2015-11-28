@@ -45,7 +45,7 @@ exports.create = function(req, res) {
     if(!project) { return res.status(404).send("Project not found"); }
 
     // Only someone who is part of the project can write a blog post
-    User.findById(req.user._id, function(err, user) {
+    User.findById(req.user._id,  '-salt -hashedPassword', function(err, user) {
       if (err) { return handleError(res, err); }
 
       if ((user.projects && user.projects.indexOf(project._id) !== -1) || user.role === 'mentor' || user.role === 'admin'){
@@ -96,7 +96,7 @@ exports.destroy = function(req, res) {
 
     // Only the post's author, a mentor, or an admin can delete the post
     var userId = req.user._id;
-    User.findById(userId, function(err, user) {
+    User.findById(userId,  '-salt -hashedPassword', function(err, user) {
       if (err) { return handleError(res, err); }
 
       if (post.author === userId || user.role === 'mentor' || user.role === 'admin'){
@@ -107,7 +107,7 @@ exports.destroy = function(req, res) {
       } else {
         return handleError(res, err);
       }
-      
+
     });
 
   });

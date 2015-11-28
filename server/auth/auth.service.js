@@ -25,7 +25,7 @@ function isAuthenticated() {
     })
     // Attach user to request
     .use(function(req, res, next) {
-      User.findById(req.user._id, function (err, user) {
+      User.findById(req.user._id,  '-salt -hashedPassword', function (err, user) {
         if (err) return next(err);
         if (!user) return res.send(401);
 

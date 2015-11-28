@@ -95,8 +95,5 @@ ClassYear = mongoose.model('ClassYear', ClassSchema);
 module.exports = ClassYear;
 
 ClassYear.getCurrent(function(err, currentClassYear){
-    module.exports.currentClassYear = currentClassYear;
-    // console.log("It Works!");
-    // console.log(module.exports.currentClassYear);
-    // console.log(currentClassYear);
+    global.currentClassYear = currentClassYear;
 });
