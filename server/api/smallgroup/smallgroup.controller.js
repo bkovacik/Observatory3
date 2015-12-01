@@ -158,6 +158,20 @@ exports.deleteMember = function(req, res){
         });
 };
 
+exports.changeName = function(req,res){
+  var id = req.params.id;
+  var newName = String(req.body.smallGroupName);
+  SmallGroup.findById(id, function(err,smallgroup){
+    if (err) return handleError(res, err);
+    smallgroup.name = newName;
+    res.json({name:smallgroup.name});
+    smallgroup.save(function(err){
+      if (err) return validationError(res,err);
+      res.send(200);
+    })
+  });
+};
+
 function handleError(res, err) {
   return res.send(500, err);
 }

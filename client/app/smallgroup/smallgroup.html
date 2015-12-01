@@ -10,9 +10,25 @@
 </div>
 
 <div ng-show='smallgroup' class="container smallgroup">
+<<<<<<< c86bfc6878e8b26c50da48d2243776b2653aacc9
     <div class="row">
 	    <div class="col-sm-12">
 			<h3>Small Group : {{ smallgroup.name }}</h3>
+=======
+		<h3 ng-hide="edittingSmallGroupName">Small Group: {{smallgroup.name}}</h3>
+		<p>
+		<hname></hname>
+		</p>
+		<div class="btn-group description-buttons">
+				<button type="button" class='btn btn-default btn-sm' ng-click='editSmallGroupName()'>Edit Small Group Name</button>
+				<button type="button" class='btn btn-default btn-sm' ng-click='saveSmallGroupName()'>Save Small Group Name</button>
+		</div>
+	<div class=info ng-hide='showAttendanceCode'>
+		<button class='btn btn-primary' ng-show='isMentor()' ng-click='showAttendance()'> Show Attendance </button>
+
+		<div ng-show='isPresent()'>
+			Your attendance has been taken!
+>>>>>>> can now edit the small group name
 		</div>
 		<div class=info ng-hide='showAttendanceCodeFull'>
 		    <div class="col-sm-12">

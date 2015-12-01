@@ -83,6 +83,7 @@ angular.module('observatory3App')
         });
     };
 
+<<<<<<< c86bfc6878e8b26c50da48d2243776b2653aacc9
     $scope.generateAttendanceCode = function(){
       if ($scope.showAttendanceCode){ //TODO call api to generate code
         $scope.showAttendanceCodeFull=true;
@@ -94,9 +95,31 @@ angular.module('observatory3App')
             $scope.showAttendanceCode = true;
         });
       }
+=======
+    $scope.edittingSmallGroupName = false;
+    $scope.editSmallGroupName = function(){
+      $scope.edittingSmallGroupName = !$scope.edittingSmallGroupName;
+    };
+
+    $scope.saveSmallGroupName = function(){
+      $scope.edittingSmallGroupName = false;
+      $http.put("/api/smallgroup/" + $scope.user.smallgroup + "/name", {
+          'smallGroupName': $scope.smallgroup.name
+      }).success(function(){
+          notify('Small Group Name updated!');
+      }).error(function(){
+          notify('Could not update small group name!', {classes: ["alert-danger"] });
+      });
+    };
+
+
+    $scope.showAttendance = function(){
+      $scope.showAttendanceCode = true;
+>>>>>>> can now edit the small group name
     };
 
     $scope.isPresent = function(){ return false; };
+<<<<<<< c86bfc6878e8b26c50da48d2243776b2653aacc9
 
     $scope.removeUser = function(student){
         $http.delete('/api/smallgroup/'+$scope.smallgroup._id+'/member/'+student._id).success(function(){
@@ -112,4 +135,15 @@ angular.module('observatory3App')
         });
 
     };
+=======
+    $scope.isMentor = Auth.isMentor;
+
+
+  })
+  .directive('hname', function() {
+      return {
+          restrict:'E',
+          template: '<input type=\'text\' maxlength="50" ng-show=\'edittingSmallGroupName\' ng-model=\'smallgroup.name\'><br>'
+      };
+>>>>>>> can now edit the small group name
   });
