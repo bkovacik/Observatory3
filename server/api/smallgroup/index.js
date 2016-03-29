@@ -14,7 +14,6 @@ router.put('/:id', auth.hasRole('mentor'), controller.modify);
 router.put('/:id/name',auth.hasRole('mentor'),controller.changeName);
 router.get('/:id/members', controller.getSmallGroupMembers);
 router.put('/:id/member', controller.addMember);
->>>>>>> can now edit the small group name
 router.get('/:id', auth.isAuthenticated(), controller.getSmallGroup);
 router.put('/:id/name', auth.isAuthenticated(), controller.changeName);
 router.delete('/:id', auth.hasRole('mentor') || auth.hasRole('admin'), controller.delete);
